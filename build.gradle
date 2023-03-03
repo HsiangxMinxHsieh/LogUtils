@@ -14,6 +14,6 @@ plugins {
 }
 
 ext {
-    sdkVersionName = '0.0.3'
+    sdkVersionName = '1.0.0'
     sdkVersionCode = 01
 }
