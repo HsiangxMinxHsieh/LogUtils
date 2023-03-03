@@ -42,3 +42,34 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+
+task generateSourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier 'sources'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            Production(MavenPublication) {
+                from components.release
+                // 使用方引用 implementation 'tw.com.lig:lig_android_ui_module:1.x.x'
+                groupId = 'com.github.HsiangxMinxHsieh'
+                artifactId = 'LogUtils'
+                version = rootProject.ext.sdkVersionName
+                // 上傳 source code，這樣使用方可以看到註解
+                artifact generateSourcesJar
+            }
+        }
+//        repositories {
+//            maven {
+//                url = "https://maven.lig.com.tw/repository/maven-releases/"
+//                credentials {
+//                    username = "pusher"
+//                    password = "h58895889"
+//                }
+//            }
+//        }
+    }
+}
