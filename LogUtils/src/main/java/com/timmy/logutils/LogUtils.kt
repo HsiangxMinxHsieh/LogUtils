@@ -40,11 +40,11 @@ private fun logMsgMultiLine(msg: String, tagName: String, type: LogType) {
 
 private fun printLog(tagName: String, msg: String, start: Int, end: Int, type: LogType) {
     when (type) {
-        LogType.Verbose -> Log.v(tagName, msg.substring(start, end)+"\n")
-        LogType.Debug -> Log.d(tagName, msg.substring(start, end)+"\n")
-        LogType.Info -> Log.i(tagName, msg.substring(start, end)+"\n")
-        LogType.Warning -> Log.w(tagName, msg.substring(start, end)+"\n")
-        LogType.Error -> Log.e(tagName, msg.substring(start, end)+"\n")
+        LogType.Verbose -> Log.v(tagName, msg.substring(start, end))
+        LogType.Debug -> Log.d(tagName, msg.substring(start, end))
+        LogType.Info -> Log.i(tagName, msg.substring(start, end))
+        LogType.Warning -> Log.w(tagName, msg.substring(start, end))
+        LogType.Error -> Log.e(tagName, msg.substring(start, end))
     }
 }
 

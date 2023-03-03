@@ -62,14 +62,5 @@ afterEvaluate {
                 artifact generateSourcesJar
             }
         }
-//        repositories {
-//            maven {
-//                url = "https://maven.lig.com.tw/repository/maven-releases/"
-//                credentials {
-//                    username = "pusher"
-//                    password = "h58895889"
-//                }
-//            }
-//        }
     }
 }
