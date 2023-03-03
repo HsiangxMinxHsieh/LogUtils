@@ -27,4 +27,5 @@ dependencies {
 ※修改每行字數：</p>
 <pre><code>
 LogOption.LOG_MAX_LENGTH = 500 // 將每行字數修改為500
+
 </code></pre>
