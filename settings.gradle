@@ -18,6 +18,6 @@ rootProject.name = "LogUtils"
 include ':app'
 include ':LogUtils'
 
-
-include ':log_utils'
-project(':log_utils').projectDir = new File('./LogUtils')
+//
+//include ':log_utils'
+//project(':log_utils').projectDir = new File('./LogUtils')
