@@ -1,7 +1,12 @@
 package com.timmy.logutils
 
 import android.os.Build
+import android.os.Environment
+import android.os.StatFs
 import android.util.Log
+import java.io.*
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.regex.Pattern
 
 
@@ -12,8 +17,14 @@ internal val tag: String?
     get() = Throwable().stackTrace.getOrNull(2)?.let(::createStackElementTag)
 
 object LogOption {
-    //控制列印log日誌的每行字數
+    // 控制列印log日誌的每行字數
     var LOG_MAX_LENGTH = 3000
+
+    // 每一個Log檔案可以容許的最大大小(KB)
+    var MAX_LOG_FILE_SIZE = 1024
+
+    // 裝置剩餘空間小於這個容量以後，不寫入檔案(MB)。
+    var WRITE_LOG_FREE_SPACE = 20
 }
 
 private const val MAX_TAG_LENGTH = 23
@@ -63,6 +74,8 @@ private fun printLog(tagName: String, msg: String, start: Int, end: Int, type: L
     }
 }
 
+// 一般過多字元換行方法
+
 fun logv(msg: String) {
     logv(tag ?: "Log", msg)
 }
@@ -107,8 +120,62 @@ fun loge(msg: String, throwable: Throwable) {
     Log.e(tag ?: "Log", msg, throwable)
 }
 
+// 寫入檔案的Log方法
 
-fun Throwable.trace(TAG: String = "TAG") {
+private const val END_LINE = "\n"
+
+lateinit var storeFile: File
+fun logWtf(filePath: File, msg: String) {
+    logWtf(filePath, tag ?: "Log", msg)
+}
+
+fun logWtf(filePath: File, tagName: String, msg: String) {
+    writeToFileFolder(filePath, "${getNowTimeFormat()} $tag <Thread ID:${Thread.currentThread().id}>: $msg $END_LINE")
+}
+
+
+private fun getNowTimeFormat(): String = SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault()).format(Date())
+
+private fun getInternalFreeSpace(showMB: Boolean = true): Long {
+    val stat = StatFs(Environment.getDataDirectory().absolutePath)
+    val bytesAvailable = stat.blockSizeLong * stat.availableBlocksLong
+    return bytesAvailable / (if (showMB) (1024 * 1024) else 1)
+}
+
+private fun writeToFileFolder(filePath: File, msg: String) {
+    if (getInternalFreeSpace(true) < LogOption.WRITE_LOG_FREE_SPACE) return
+
+    try {
+        if (!::storeFile.isInitialized || !storeFile.exists() || storeFile.length() + msg.length > LogOption.MAX_LOG_FILE_SIZE * 1024) {
+            storeFile = File(filePath.parentFile, getStoreFileName(filePath)).apply {
+                parentFile?.mkdirs()
+                createNewFile()
+            }
+        }
+        storeFile.appendText(msg)
+
+    } catch (e: IOException) {
+        loge("Exception", "File write failed: ${e.message}")
+        e.printStackTrace()
+    }
+}
+
+
+/**由於要自動分檔名去儲存，因此需要加上時間戳記，那傳進來的檔案名稱比如說是
+ * log.txt
+ * 要回傳 「log_2023-03-09 11:15:15.txt」
+ * */
+private fun getStoreFileName(filePath: File) = filePath.name.let {
+    it.substring(0, it.lastIndexOf(".")) + // 檔案名稱
+            "_${getNowTimeFormat()}" + // 時間戳記
+            it.substring(it.lastIndexOf("."), it.length) // 副檔名
+}
+
+/**找到是哪裡呼叫到這裡的(呼叫路徑追蹤方法)
+ * 使用方法：
+ * Exception("標題TAG").trace("到底是哪裡去Call的")
+ * */
+fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
     try {
         throw this
     } catch (th: Throwable) {
@@ -118,4 +185,21 @@ fun Throwable.trace(TAG: String = "TAG") {
         }
     }
 
+}
+
+/**執行多久計時工具*/
+fun calculateTime(startTime: Long, function: () -> Unit) {
+    loge("計時開始。")
+    function.invoke()
+    loge("花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
+}
+
+
+/**執行多久計時工具
+ * 可於方法內 Call Coroutine方法版本
+ * */
+suspend fun calculateTime(startTime: Long, function: suspend() -> Unit) {
+    loge("計時開始。")
+    function.invoke()
+    loge("花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
 }
