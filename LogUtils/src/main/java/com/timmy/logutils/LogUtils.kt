@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.util.Log
+import kotlinx.coroutines.runBlocking
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -187,19 +188,11 @@ fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
 
 }
 
-/**執行多久計時工具*/
-fun calculateTime(startTime: Long, function: () -> Unit) {
-    loge("計時開始。")
-    function.invoke()
-    loge("花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
-}
-
-
 /**執行多久計時工具
- * 可於方法內 Call Coroutine方法版本
  * */
-suspend fun calculateTime(startTime: Long, function: suspend() -> Unit) {
-    loge("計時開始。")
+fun calculateTime( tagName: String = tag?:"CalculateTime LOG",function: suspend() -> Unit) = runBlocking {
+    val startTime = System.currentTimeMillis()
+    loge(tagName,"計時開始。")
     function.invoke()
-    loge("花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
+    loge(tagName,"花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
 }
