@@ -126,6 +126,20 @@ fun loge(msg: String, throwable: Throwable) {
 private const val END_LINE = "\n"
 
 lateinit var storeFile: File
+
+enum class WriteType(var collectTimes:Int){
+    Collect(1000),
+    Single(1)
+}
+
+private data class WrapFile(
+    val writeType:WriteType = WriteType.Single,
+    val storeFile:File,
+    var catchMsg:String = ""
+){
+
+
+}
 fun logWtf(filePath: File, msg: String) {
     logWtf(filePath, tag ?: "Log", msg)
 }
@@ -153,6 +167,8 @@ private fun writeToFileFolder(filePath: File, msg: String) {
                 createNewFile()
             }
         }
+
+
         storeFile.appendText(msg)
 
     } catch (e: IOException) {
@@ -187,10 +203,18 @@ fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
     }
 
 }
-
-/**執行多久計時工具
+/**執行多久計時工具(階段型)
  * */
-fun calculateTime( tagName: String = tag?:"CalculateTime LOG",function: suspend() -> Unit) = runBlocking {
+fun calculateTimeStep(stepTime:Long,tagName: String = tag?:"CalculateTime LOG"):Long{
+    return System.currentTimeMillis().apply{
+        loge(tagName,"於[${tagName}]，時間是${this-stepTime}毫秒")
+    }
+}
+
+
+/**執行多久計時工具(內容型)
+ * */
+fun calculateTimeInterval( tagName: String = tag?:"CalculateTime LOG",function: suspend() -> Unit) = runBlocking {
     val startTime = System.currentTimeMillis()
     loge(tagName,"計時開始。")
     function.invoke()
