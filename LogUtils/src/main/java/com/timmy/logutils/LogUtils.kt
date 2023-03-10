@@ -127,25 +127,25 @@ private const val END_LINE = "\n"
 
 lateinit var storeFile: File
 
-enum class WriteType(var collectTimes:Int){
-    Collect(1000),
-    Single(1)
+enum class WriteType(var collectTimes: Int) {
+    Collect(1000), // call這麼多次才寫入檔案一次 //以節省效能。
+    Single(1) // 每call一次寫入檔案一次
 }
 
 private data class WrapFile(
-    val writeType:WriteType = WriteType.Single,
-    val storeFile:File,
-    var catchMsg:String = ""
-){
+    val writeType: WriteType = WriteType.Single,
+    val storeFile: File,
+    var catchMsg: MutableList<String> = mutableListOf(),
 
+    )
 
-}
+private val fileMap by lazy { mutableMapOf<String, WrapFile>() }
 fun logWtf(filePath: File, msg: String) {
     logWtf(filePath, tag ?: "Log", msg)
 }
 
 fun logWtf(filePath: File, tagName: String, msg: String) {
-    writeToFileFolder(filePath, "${getNowTimeFormat()} $tag <Thread ID:${Thread.currentThread().id}>: $msg $END_LINE")
+    writeToFileFolder(filePath, "${getNowTimeFormat()} $tagName <Thread ID:${Thread.currentThread().id}>: $msg $END_LINE")
 }
 
 
@@ -157,7 +157,7 @@ private fun getInternalFreeSpace(showMB: Boolean = true): Long {
     return bytesAvailable / (if (showMB) (1024 * 1024) else 1)
 }
 
-private fun writeToFileFolder(filePath: File, msg: String) {
+private fun writeToFileFolder(filePath: File, msg: String, writeType: WriteType = WriteType.Single) {
     if (getInternalFreeSpace(true) < LogOption.WRITE_LOG_FREE_SPACE) return
 
     try {
@@ -203,20 +203,21 @@ fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
     }
 
 }
+
 /**執行多久計時工具(階段型)
  * */
-fun calculateTimeStep(stepTime:Long,tagName: String = tag?:"CalculateTime LOG"):Long{
-    return System.currentTimeMillis().apply{
-        loge(tagName,"於[${tagName}]，時間是${this-stepTime}毫秒")
+fun calculateTimeStep(stepTime: Long, tagName: String = tag ?: "CalculateTime LOG"): Long {
+    return System.currentTimeMillis().apply {
+        loge(tagName, "於[${tagName}]，時間是${this - stepTime}毫秒")
     }
 }
 
 
 /**執行多久計時工具(內容型)
  * */
-fun calculateTimeInterval( tagName: String = tag?:"CalculateTime LOG",function: suspend() -> Unit) = runBlocking {
+fun calculateTimeInterval(tagName: String = tag ?: "CalculateTime LOG", function: suspend () -> Unit) = runBlocking {
     val startTime = System.currentTimeMillis()
-    loge(tagName,"計時開始。")
+    loge(tagName, "計時開始。")
     function.invoke()
-    loge(tagName,"花費時間共計${System.currentTimeMillis()-startTime}毫秒。")
+    loge(tagName, "花費時間共計${System.currentTimeMillis() - startTime}毫秒。")
 }
