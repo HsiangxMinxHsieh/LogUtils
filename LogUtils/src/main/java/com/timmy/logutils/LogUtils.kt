@@ -6,6 +6,7 @@ import android.os.StatFs
 import android.util.Log
 import kotlinx.coroutines.runBlocking
 import java.io.*
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
@@ -21,16 +22,19 @@ object LogOption {
     // 控制列印log日誌的每行字數
     var LOG_MAX_LENGTH = 3000
 
-    // 每一個Log檔案可以容許的最大大小(KB)
+    // 每一個Log檔案可以容許的最大大小(KB)(預設為1MB)
     var MAX_LOG_FILE_SIZE = 1024
 
-    // 裝置剩餘空間小於這個容量以後，不寫入檔案(MB)。
-    var WRITE_LOG_FREE_SPACE = 20
+    // 裝置剩餘空間小於這個容量以後，不寫入檔案(KB)(預留可存20個最大檔案。)
+    var WRITE_LOG_FREE_SPACE = 20 * MAX_LOG_FILE_SIZE
+
+    // call這麼多次才寫入檔案一次 //以節省效能。
+    var COLLECT_LOG_SIZE = 1000
 }
 
 private const val MAX_TAG_LENGTH = 23
 
-private val ANONYMOUS_CLASS = Pattern.compile("(\\$\\d+)+$")
+private val ANONYMOUS_CLASS = Pattern.compile("\\$\\d+")
 
 private fun createStackElementTag(element: StackTraceElement): String {
     var tag = element.className.substringAfterLast('.')
@@ -125,57 +129,85 @@ fun loge(msg: String, throwable: Throwable) {
 
 private const val END_LINE = "\n"
 
-lateinit var storeFile: File
 
-enum class WriteType(var collectTimes: Int) {
-    Collect(1000), // call這麼多次才寫入檔案一次 //以節省效能。
-    Single(1) // 每call一次寫入檔案一次
+enum class WriteType(val collectTimes: Int) {
+    Collect(LogOption.COLLECT_LOG_SIZE),// call這麼多次才寫入檔案一次 //以節省效能。
+    Single(1),  // 每call一次寫入檔案一次
+    Default(0);  // 預設值，若沒有傳入、且Map中沒有該檔案才會預設使用Single。
 }
 
 private data class WrapFile(
+    var storeFile: File,
     val writeType: WriteType = WriteType.Single,
-    val storeFile: File,
     var catchMsg: MutableList<String> = mutableListOf(),
-
-    )
+)
 
 private val fileMap by lazy { mutableMapOf<String, WrapFile>() }
-fun logWtf(filePath: File, msg: String) {
-    logWtf(filePath, tag ?: "Log", msg)
+
+fun logWtf(filePath: File, msg: String, writeType: WriteType = WriteType.Default) {
+    logWtf(filePath, tag ?: "Log", msg, writeType)
 }
 
-fun logWtf(filePath: File, tagName: String, msg: String) {
-    writeToFileFolder(filePath, "${getNowTimeFormat()} $tagName <Thread ID:${Thread.currentThread().id}>: $msg $END_LINE")
+fun logWtf(filePath: File, tagName: String, msg: String, writeType: WriteType = WriteType.Default) {
+    writeToFile(filePath, "${getNowTimeFormat()} $tagName <Thread name:${Thread.currentThread().name}>: $msg $END_LINE", writeType)
 }
 
 
 private fun getNowTimeFormat(): String = SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault()).format(Date())
 
-private fun getInternalFreeSpace(showMB: Boolean = true): Long {
-    val stat = StatFs(Environment.getDataDirectory().absolutePath)
-    val bytesAvailable = stat.blockSizeLong * stat.availableBlocksLong
-    return bytesAvailable / (if (showMB) (1024 * 1024) else 1)
-}
+private fun getInternalFreeSpaceInKB() =
+    StatFs(Environment.getDataDirectory().absolutePath).let {
+        (it.blockSizeLong * it.availableBlocksLong) / (1024)
+    }
 
-private fun writeToFileFolder(filePath: File, msg: String, writeType: WriteType = WriteType.Single) {
-    if (getInternalFreeSpace(true) < LogOption.WRITE_LOG_FREE_SPACE) return
+
+private class WriteTypeException(msg: String) : Exception(msg)
+
+private fun writeToFile(filePath: File, msg: String, writeType: WriteType) {
+
+    if (getInternalFreeSpaceInKB() < LogOption.WRITE_LOG_FREE_SPACE) return
 
     try {
-        if (!::storeFile.isInitialized || !storeFile.exists() || storeFile.length() + msg.length > LogOption.MAX_LOG_FILE_SIZE * 1024) {
-            storeFile = File(filePath.parentFile, getStoreFileName(filePath)).apply {
-                parentFile?.mkdirs()
-                createNewFile()
+        var wrapFile = fileMap[filePath.absolutePath]
+
+        if (wrapFile == null || (wrapFile.storeFile.length() + wrapFile.catchMsg.sumOf { it.length } + msg.length > LogOption.MAX_LOG_FILE_SIZE * 1024)) {
+            fileMap[filePath.absolutePath] = (wrapFile?.copy(storeFile = createStoreFile(filePath)) ?: // 找得到新的，但是容量超過，要換一個storeFile。
+            WrapFile( // 找不到舊的，新增一個新的
+                storeFile = createStoreFile(filePath),
+                writeType = if (writeType == WriteType.Default) WriteType.Single else writeType
+            )).apply {
+                wrapFile = this
             }
         }
 
+        if ((wrapFile?.writeType != writeType) && writeType != WriteType.Default) {
+            throw WriteTypeException(" ${filePath.name} 第一次寫入的Type和此次不同！第一次為${wrapFile?.writeType}，此次為${writeType}")
+        }
 
-        storeFile.appendText(msg)
-
+        wrapFile?.catchMsg?.apply {
+            add(msg)
+            takeIf { it.size >= (LogOption.COLLECT_LOG_SIZE) }
+                ?.joinToString("")
+                ?.let { wrapFile?.storeFile?.appendText(it) }
+                ?.also { clear() }
+        }
     } catch (e: IOException) {
-        loge("Exception", "File write failed: ${e.message}")
+        loge("Exception", "檔案寫入失敗，錯誤訊息： ${e.message}")
         e.printStackTrace()
     }
 }
+
+fun writeRemainingLogOnExit() {
+    fileMap.filter { it.value.catchMsg.isNotEmpty() }.forEach {
+        it.value.storeFile.appendText(it.value.catchMsg.joinToString(""))
+    }
+}
+
+private fun createStoreFile(filePath: File) =
+    File(filePath.parentFile, getStoreFileName(filePath)).apply {
+        parentFile?.mkdirs()
+        createNewFile()
+    }
 
 
 /**由於要自動分檔名去儲存，因此需要加上時間戳記，那傳進來的檔案名稱比如說是
@@ -208,7 +240,8 @@ fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
  * */
 fun calculateTimeStep(stepTime: Long, tagName: String = tag ?: "CalculateTime LOG"): Long {
     return System.currentTimeMillis().apply {
-        loge(tagName, "於[${tagName}]，時間是${this - stepTime}毫秒")
+        if (this - stepTime != 0L)
+            loge(tagName, "於[${tagName}]，與上一階段相差時間是${this - stepTime}毫秒")
     }
 }
 

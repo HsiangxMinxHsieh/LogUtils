@@ -17,7 +17,7 @@ class MainActivity : AppCompatActivity() {
     private fun logSample() {
 
         // 計時方法內容型使用範例：
-//        sampleForCalculateTimeInterval()
+        sampleForCalculateTimeInterval()
 
         // 計時方法階段型使用範例：
         sampleForCalculateTimeStep()
@@ -26,28 +26,41 @@ class MainActivity : AppCompatActivity() {
         sampleForLogWriteToFile()
 
         // 讀取檔案寫入多行Log範例：
-//        sampleForLogMultipleLine()
-
+        sampleForLogMultipleLine()
 
     }
 
-    private fun sampleForLogWriteToFile() {
-        (1..10000).forEach {
-            // 寫入Log檔案範例：
-            logWtf(File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath + "/LOG_FOLDER/" + "loga.txt"), "msgTest in ${+it} times")
+    private fun sampleForLogWriteToFile() = CoroutineScope(Dispatchers.Default).launch {
+
+//        LogOption.COLLECT_LOG_SIZE = 5000 // 透過此方法去設定每次收集這麼多次的訊息以後再寫入
+        getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath?.let { environmentPath ->
+            logWtf(File("$environmentPath/ERROR_LOG_FOLDER/error_log.txt"), "msgTest in first times", WriteType.Single)
+
+            logWtf(File("$environmentPath/ERROR_LOG_FOLDER/error_log.txt"), "msgTest in second times")
+            (1..10300).forEach {
+                // 寫入Log檔案範例：
+                logWtf(File("$environmentPath/LOG_FOLDER/log.txt"), "msgTest in ${+it} times", WriteType.Collect)
+            }
+
+            logWtf(File("$environmentPath/LOG_FOLDER/log.txt"), "msgTest in penultimate times")
+
+            // 以下範例將造成Exception // 因為檔名相同，寫入的type必須一樣。 //所有的Collect Type 共用一組 collectTimes
+//        logWtf(File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath + "/LOG_FOLDER/" + "log.txt"), "msgTest in last times", WriteType.Single)
+
         }
+        loge("sampleForLogWriteToFile", "檔案範例寫入完成")
     }
 
     // 計時方法階段型使用範例：
-    private fun sampleForCalculateTimeStep() = runBlocking {
+    private fun sampleForCalculateTimeStep() = CoroutineScope(Dispatchers.Default).launch {
 
         val timeList = mutableListOf(System.currentTimeMillis())  // 開始計時
 
-        delay(1000) // 實際處理了一些事情
+        delay(1000) // 實際上處理了一些事情
 
         timeList.add(calculateTimeStep(timeList[0], "第一步驟"))
-//        loge("開始階段性計時2，此時的內容是=>${timeList[1]}")
-        delay(2000) // 實際又處理了一些事情
+
+        delay(2000) // 實際上又處理了一些事情
 
         timeList.add(calculateTimeStep(timeList[1], "第二步驟"))
 
@@ -55,6 +68,7 @@ class MainActivity : AppCompatActivity() {
 
         timeList.add(calculateTimeStep(timeList[2], "第三步驟"))
 
+        loge("sampleForCalculateTimeStep", "階段型計時方法示範完成")
     }
 
     // 計時方法內容型使用範例：
@@ -64,6 +78,8 @@ class MainActivity : AppCompatActivity() {
             delay(1000L)
             loge("這件事已經完成了")
         }
+
+        loge("sampleForCalculateTimeInterval", "內容型計時方法示範完成")
     }
 
     private fun sampleForLogMultipleLine() {
@@ -74,10 +90,12 @@ class MainActivity : AppCompatActivity() {
                     .apply { loge(this) }
             }.onFailure { loge("讀取錯誤！原因：", it) }
         }
+        loge("sampleForLogMultipleLine", "多行Log方法示範完成")
     }
 
 
     override fun onDestroy() {
         super.onDestroy()
+        writeRemainingLogOnExit()
     }
 }
