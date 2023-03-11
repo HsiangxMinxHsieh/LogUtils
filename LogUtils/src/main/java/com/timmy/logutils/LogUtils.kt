@@ -6,17 +6,9 @@ import android.os.StatFs
 import android.util.Log
 import kotlinx.coroutines.runBlocking
 import java.io.*
-import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
-
-
-enum class LogType { Verbose, Debug, Info, Warning, Error }
-
-@get:JvmSynthetic
-internal val tag: String?
-    get() = Throwable().stackTrace.getOrNull(2)?.let(::createStackElementTag)
 
 object LogOption {
     // 控制列印log日誌的每行字數
@@ -31,6 +23,104 @@ object LogOption {
     // call這麼多次才寫入檔案一次 //以節省效能。
     var COLLECT_LOG_SIZE = 1000
 }
+
+/** 一般過多字元換行印Log方法*/
+
+fun logv(msg: String) {
+    logv(logDefaultTag ?: "Log", msg)
+}
+
+fun logv(tagName: String, msg: String) {
+    logMsgMultiLine(msg, tagName, LogLevelType.Verbose)
+}
+
+fun logd(msg: String) {
+    logd(logDefaultTag ?: "Log", msg)
+}
+
+fun logd(tagName: String, msg: String) {
+    logMsgMultiLine(msg, tagName, LogLevelType.Debug)
+}
+
+fun logi(msg: String) {
+    logi(logDefaultTag ?: "Log", msg)
+}
+
+fun logi(tagName: String, msg: String) {
+    logMsgMultiLine(msg, tagName, LogLevelType.Info)
+}
+
+fun logw(msg: String) {
+    logw(logDefaultTag ?: "Log", msg)
+}
+
+fun logw(tagName: String, msg: String) {
+    logMsgMultiLine(msg, tagName, LogLevelType.Warning)
+}
+
+fun loge(msg: String) {
+    loge(logDefaultTag ?: "Log", msg)
+}
+
+fun loge(tagName: String, msg: String) {
+    logMsgMultiLine(msg, tagName, LogLevelType.Error)
+}
+
+fun loge(msg: String, throwable: Throwable) {
+    Log.e(logDefaultTag ?: "Log", msg, throwable)
+}
+
+/** 寫入檔案的Log方法*/
+
+fun logWtf(filePath: File, msg: String, writeType: WriteType = WriteType.Default) {
+    logWtf(filePath, logDefaultTag ?: "Log", msg, writeType)
+}
+
+fun logWtf(filePath: File, tagName: String, msg: String, writeType: WriteType = WriteType.Default) {
+    writeToFile(filePath, "${getNowTimeFormat()} $tagName <Thread name:${Thread.currentThread().name}>: $msg $END_LINE", writeType)
+}
+
+
+/**找到是哪裡呼叫到這裡的(呼叫路徑追蹤方法)
+ * 使用方法：
+ * Exception("標題TAG").trace("到底是哪裡去Call的")
+ * */
+fun Throwable.trace(TAG: String = logDefaultTag ?: "TRACE LOG") {
+    try {
+        throw this
+    } catch (th: Throwable) {
+        loge(TAG, "=======${th.localizedMessage}=======")
+        th.stackTrace.forEach {
+            loge(TAG, it.toString())
+        }
+    }
+
+}
+
+/**執行多久計時工具(階段型)
+ * */
+fun calculateTimeStep(stepTime: Long, tagName: String = logDefaultTag ?: "CalculateTime LOG"): Long {
+    return System.currentTimeMillis().apply {
+        if (this - stepTime != 0L)
+            loge(tagName, "於[${tagName}]，與上一階段相差時間是${this - stepTime}毫秒")
+    }
+}
+
+/**執行多久計時工具(內容型)
+ * */
+fun calculateTimeInterval(tagName: String = logDefaultTag ?: "CalculateTime LOG", function: suspend () -> Unit) = runBlocking {
+    val startTime = System.currentTimeMillis()
+    loge(tagName, "計時開始。")
+    function.invoke()
+    loge(tagName, "花費時間共計${System.currentTimeMillis() - startTime}毫秒。")
+}
+
+
+private enum class LogLevelType { Verbose, Debug, Info, Warning, Error }
+
+@get:JvmSynthetic
+private val logDefaultTag: String?
+    get() = Throwable().stackTrace.getOrNull(2)?.let(::createStackElementTag)
 
 private const val MAX_TAG_LENGTH = 23
 
@@ -52,7 +142,7 @@ private fun createStackElementTag(element: StackTraceElement): String {
 
 
 /**印多行文字(例如Json)的時候，可以強迫AndroidStudio全部印出的方法：*/
-private fun logMsgMultiLine(msg: String, tagName: String, type: LogType) {
+private fun logMsgMultiLine(msg: String, tagName: String, type: LogLevelType) {
     val strLength = msg.length
     var start = 0
     var end = LogOption.LOG_MAX_LENGTH
@@ -69,66 +159,18 @@ private fun logMsgMultiLine(msg: String, tagName: String, type: LogType) {
     }
 }
 
-private fun printLog(tagName: String, msg: String, start: Int, end: Int, type: LogType) {
+private fun printLog(tagName: String, msg: String, start: Int, end: Int, type: LogLevelType) {
     when (type) {
-        LogType.Verbose -> Log.v(tagName, msg.substring(start, end))
-        LogType.Debug -> Log.d(tagName, msg.substring(start, end))
-        LogType.Info -> Log.i(tagName, msg.substring(start, end))
-        LogType.Warning -> Log.w(tagName, msg.substring(start, end))
-        LogType.Error -> Log.e(tagName, msg.substring(start, end))
+        LogLevelType.Verbose -> Log.v(tagName, msg.substring(start, end))
+        LogLevelType.Debug -> Log.d(tagName, msg.substring(start, end))
+        LogLevelType.Info -> Log.i(tagName, msg.substring(start, end))
+        LogLevelType.Warning -> Log.w(tagName, msg.substring(start, end))
+        LogLevelType.Error -> Log.e(tagName, msg.substring(start, end))
     }
 }
 
-// 一般過多字元換行方法
-
-fun logv(msg: String) {
-    logv(tag ?: "Log", msg)
-}
-
-fun logv(tagName: String, msg: String) {
-    logMsgMultiLine(msg, tagName, LogType.Verbose)
-}
-
-fun logd(msg: String) {
-    logd(tag ?: "Log", msg)
-}
-
-fun logd(tagName: String, msg: String) {
-    logMsgMultiLine(msg, tagName, LogType.Debug)
-}
-
-fun logi(msg: String) {
-    logi(tag ?: "Log", msg)
-}
-
-fun logi(tagName: String, msg: String) {
-    logMsgMultiLine(msg, tagName, LogType.Info)
-}
-
-fun logw(msg: String) {
-    logw(tag ?: "Log", msg)
-}
-
-fun logw(tagName: String, msg: String) {
-    logMsgMultiLine(msg, tagName, LogType.Warning)
-}
-
-fun loge(msg: String) {
-    loge(tag ?: "Log", msg)
-}
-
-fun loge(tagName: String, msg: String) {
-    logMsgMultiLine(msg, tagName, LogType.Error)
-}
-
-fun loge(msg: String, throwable: Throwable) {
-    Log.e(tag ?: "Log", msg, throwable)
-}
-
-// 寫入檔案的Log方法
 
 private const val END_LINE = "\n"
-
 
 enum class WriteType {
     Collect,// call這麼 LogOption.COLLECT_LOG_SIZE 次才寫入檔案一次 //以節省效能。
@@ -143,15 +185,6 @@ private data class WrapFile(
 )
 
 private val fileMap by lazy { mutableMapOf<String, WrapFile>() }
-
-fun logWtf(filePath: File, msg: String, writeType: WriteType = WriteType.Default) {
-    logWtf(filePath, tag ?: "Log", msg, writeType)
-}
-
-fun logWtf(filePath: File, tagName: String, msg: String, writeType: WriteType = WriteType.Default) {
-    writeToFile(filePath, "${getNowTimeFormat()} $tagName <Thread name:${Thread.currentThread().name}>: $msg $END_LINE", writeType)
-}
-
 
 private fun getNowTimeFormat(): String = SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault()).format(Date())
 
@@ -218,39 +251,4 @@ private fun getStoreFileName(filePath: File) = filePath.name.let {
     it.substring(0, it.lastIndexOf(".")) + // 檔案名稱
             "_${getNowTimeFormat()}" + // 時間戳記
             it.substring(it.lastIndexOf("."), it.length) // 副檔名
-}
-
-/**找到是哪裡呼叫到這裡的(呼叫路徑追蹤方法)
- * 使用方法：
- * Exception("標題TAG").trace("到底是哪裡去Call的")
- * */
-fun Throwable.trace(TAG: String = tag ?: "TRACE LOG") {
-    try {
-        throw this
-    } catch (th: Throwable) {
-        loge(TAG, "=======${th.localizedMessage}=======")
-        th.stackTrace.forEach {
-            loge(TAG, it.toString())
-        }
-    }
-
-}
-
-/**執行多久計時工具(階段型)
- * */
-fun calculateTimeStep(stepTime: Long, tagName: String = tag ?: "CalculateTime LOG"): Long {
-    return System.currentTimeMillis().apply {
-        if (this - stepTime != 0L)
-            loge(tagName, "於[${tagName}]，與上一階段相差時間是${this - stepTime}毫秒")
-    }
-}
-
-
-/**執行多久計時工具(內容型)
- * */
-fun calculateTimeInterval(tagName: String = tag ?: "CalculateTime LOG", function: suspend () -> Unit) = runBlocking {
-    val startTime = System.currentTimeMillis()
-    loge(tagName, "計時開始。")
-    function.invoke()
-    loge(tagName, "花費時間共計${System.currentTimeMillis() - startTime}毫秒。")
 }
