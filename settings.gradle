@@ -18,6 +18,6 @@ rootProject.name = "LogUtils"
 include ':app'
 include ':LogUtils'
 
-// debug用本地端內容
-include ':log_utils'
-project(':log_utils').projectDir = new File('./LogUtils')
+//// debug用本地端內容
+//include ':log_utils'
+//project(':log_utils').projectDir = new File('./LogUtils')
