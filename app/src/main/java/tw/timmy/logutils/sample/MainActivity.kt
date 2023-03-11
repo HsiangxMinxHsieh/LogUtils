@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 計時方法內容型使用範例：
-    private fun sampleForCalculateTimeInterval() {
+    private fun sampleForCalculateTimeInterval()=CoroutineScope(Dispatchers.Default).launch {
         calculateTimeInterval("某件事的計時") {
             loge("我做了一件事")
             delay(1000L)
