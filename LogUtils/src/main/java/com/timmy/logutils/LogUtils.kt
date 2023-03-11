@@ -130,10 +130,10 @@ fun loge(msg: String, throwable: Throwable) {
 private const val END_LINE = "\n"
 
 
-enum class WriteType(val collectTimes: Int) {
-    Collect(LogOption.COLLECT_LOG_SIZE),// call這麼多次才寫入檔案一次 //以節省效能。
-    Single(1),  // 每call一次寫入檔案一次
-    Default(0);  // 預設值，若沒有傳入、且Map中沒有該檔案才會預設使用Single。
+enum class WriteType {
+    Collect,// call這麼 LogOption.COLLECT_LOG_SIZE 次才寫入檔案一次 //以節省效能。
+    Single,  // 每call一次寫入檔案一次 //預設使用Single
+    Default;  // 預設值，若沒有傳入、且Map中沒有該檔案才會預設使用Single。
 }
 
 private data class WrapFile(
@@ -186,7 +186,7 @@ private fun writeToFile(filePath: File, msg: String, writeType: WriteType) {
 
         wrapFile?.catchMsg?.apply {
             add(msg)
-            takeIf { it.size >= (LogOption.COLLECT_LOG_SIZE) }
+            takeIf { it.size >= (LogOption.COLLECT_LOG_SIZE) || wrapFile?.writeType == WriteType.Single }
                 ?.joinToString("")
                 ?.let { wrapFile?.storeFile?.appendText(it) }
                 ?.also { clear() }

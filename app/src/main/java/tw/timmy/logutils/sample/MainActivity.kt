@@ -42,9 +42,9 @@ class MainActivity : AppCompatActivity() {
                 logWtf(File("$environmentPath/LOG_FOLDER/log.txt"), "msgTest in ${+it} times", WriteType.Collect)
             }
 
-            logWtf(File("$environmentPath/LOG_FOLDER/log.txt"), "msgTest in penultimate times")
+            logWtf(File("$environmentPath/LOG_FOLDER/log.txt"), "msgTest in penultimate times") // 第一次指定WriteType以後，後續的WriteType可以不用再傳入。
 
-            // 以下範例將造成Exception // 因為檔名相同，寫入的type必須一樣。 //所有的Collect Type 共用一組 collectTimes
+            // 以下範例將造成 WriteTypeException // 因為檔名相同，寫入的type必須一樣。 //所有的Collect Type 共用一組 collectTimes
 //        logWtf(File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.absolutePath + "/LOG_FOLDER/" + "log.txt"), "msgTest in last times", WriteType.Single)
 
         }
