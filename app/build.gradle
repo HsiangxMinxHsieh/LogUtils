@@ -44,5 +44,7 @@ dependencies {
     implementation project(path: ':log_utils') // 本地端測試
 //    implementation 'com.github.HsiangxMinxHsieh:LogUtils:v1.2.0' // JitPack測試
 
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
 
 }

@@ -4,7 +4,10 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -26,47 +29,47 @@ object LogOption {
 
 /** 一般過多字元換行印Log方法*/
 
-fun logv(msg: String) {
+fun logv(msg: String?) {
     logv(logDefaultTag ?: "Log", msg)
 }
 
-fun logv(tagName: String, msg: String) {
+fun logv(tagName: String, msg: String?) {
     logMsgMultiLine(msg, tagName, LogLevelType.Verbose)
 }
 
-fun logd(msg: String) {
+fun logd(msg: String?) {
     logd(logDefaultTag ?: "Log", msg)
 }
 
-fun logd(tagName: String, msg: String) {
+fun logd(tagName: String, msg: String?) {
     logMsgMultiLine(msg, tagName, LogLevelType.Debug)
 }
 
-fun logi(msg: String) {
+fun logi(msg: String?) {
     logi(logDefaultTag ?: "Log", msg)
 }
 
-fun logi(tagName: String, msg: String) {
+fun logi(tagName: String, msg: String?) {
     logMsgMultiLine(msg, tagName, LogLevelType.Info)
 }
 
-fun logw(msg: String) {
+fun logw(msg: String?) {
     logw(logDefaultTag ?: "Log", msg)
 }
 
-fun logw(tagName: String, msg: String) {
+fun logw(tagName: String, msg: String?) {
     logMsgMultiLine(msg, tagName, LogLevelType.Warning)
 }
 
-fun loge(msg: String) {
+fun loge(msg: String?) {
     loge(logDefaultTag ?: "Log", msg)
 }
 
-fun loge(tagName: String, msg: String) {
+fun loge(tagName: String, msg: String?) {
     logMsgMultiLine(msg, tagName, LogLevelType.Error)
 }
 
-fun loge(msg: String, throwable: Throwable) {
+fun loge(msg: String?, throwable: Throwable) {
     Log.e(logDefaultTag ?: "Log", msg, throwable)
 }
 
@@ -116,6 +119,35 @@ fun calculateTimeInterval(tagName: String = logDefaultTag ?: "CalculateTime LOG"
 }
 
 
+/**
+ * Gson 的格式互轉
+ * */
+fun <T> String?.toDataBean(classOfT: Class<T>?): T? {
+
+    return if (this.isJson()) Gson().fromJson(this, classOfT)
+    else null
+}
+
+fun <T : Any> T.toJson(): String {
+    return GsonBuilder().disableHtmlEscaping().create().toJson(this) ?: ""
+}
+
+fun String?.isJson(): Boolean {
+    if (isNullOrEmpty()) {
+        loge("json is null or empty:: ${this.toString()}")
+        return false
+    }
+    var jsonObject: JSONObject? = null
+    try {
+        jsonObject = JSONObject(this)
+    } catch (e: Exception) {
+        loge("response json is:: $this \r\n ${e.message}")
+        e.printStackTrace()
+        loge("check fail, this string is not JSON format")
+    }
+    return jsonObject != null
+}
+
 private enum class LogLevelType { Verbose, Debug, Info, Warning, Error }
 
 @get:JvmSynthetic
@@ -142,19 +174,21 @@ private fun createStackElementTag(element: StackTraceElement): String {
 
 
 /**印多行文字(例如Json)的時候，可以強迫AndroidStudio全部印出的方法：*/
-private fun logMsgMultiLine(msg: String, tagName: String, type: LogLevelType) {
-    val strLength = msg.length
-    var start = 0
-    var end = LogOption.LOG_MAX_LENGTH
-    val totalLine = (msg.length / LogOption.LOG_MAX_LENGTH) + 1
-    for (i in 0..totalLine) {
-        if (strLength > end) {
-            printLog(tagName, msg, start, end, type)
-            start = end
-            end += LogOption.LOG_MAX_LENGTH
-        } else {
-            printLog(tagName, msg, start, strLength, type)
-            break
+private fun logMsgMultiLine(msg: String?, tagName: String, type: LogLevelType) {
+    msg?.let {content->
+        val strLength = content.length
+        var start = 0
+        var end = LogOption.LOG_MAX_LENGTH
+        val totalLine = (strLength / LogOption.LOG_MAX_LENGTH) + 1
+        for (i in 0..totalLine) {
+            if (strLength > end) {
+                printLog(tagName, content, start, end, type)
+                start = end
+                end += LogOption.LOG_MAX_LENGTH
+            } else {
+                printLog(tagName, content, start, strLength, type)
+                break
+            }
         }
     }
 }

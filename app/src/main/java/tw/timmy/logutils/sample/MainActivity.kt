@@ -26,7 +26,16 @@ class MainActivity : AppCompatActivity() {
         sampleForLogWriteToFile()
 
         // 讀取檔案寫入多行Log範例：
-        sampleForLogMultipleLine()
+        val data = sampleForLogMultipleLine() ?: return
+
+        // Gson的toJson和資料類別互轉
+        sampleForGsonTools(data)
+
+    }
+
+    private fun sampleForGsonTools(data: String) {
+        loge("轉換為DataBean的內容是=>${data.toDataBean(SampleData::class.java)}")
+        loge("此內容轉為Json是=>${data.toDataBean(SampleData::class.java)?.toJson()}")
 
     }
 
@@ -72,7 +81,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 計時方法內容型使用範例：
-    private fun sampleForCalculateTimeInterval()=CoroutineScope(Dispatchers.Default).launch {
+    private fun sampleForCalculateTimeInterval() = CoroutineScope(Dispatchers.Default).launch {
         calculateTimeInterval("某件事的計時") {
             loge("我做了一件事")
             delay(1000L)
@@ -82,15 +91,20 @@ class MainActivity : AppCompatActivity() {
         loge("sampleForCalculateTimeInterval", "內容型計時方法示範完成")
     }
 
-    private fun sampleForLogMultipleLine() {
-        CoroutineScope(Dispatchers.IO).launch {
-            // 讀取檔案(一大串Json)後印出範例。
-            kotlin.runCatching {
-                assets.open("test_to_print.json").bufferedReader().use { it.readText() }
-                    .apply { loge(this) }
-            }.onFailure { loge("讀取錯誤！原因：", it) }
+    private fun sampleForLogMultipleLine(): String? = runBlocking {
+        return@runBlocking withContext(Dispatchers.Default) {
+            withContext(Dispatchers.Default) {
+                // 讀取檔案(一大串Json)後印出範例。
+                kotlin.runCatching {
+                    assets.open("test_to_print.json").bufferedReader().use { it.readText() }
+                        .apply {
+                            loge(this)
+                            loge("sampleForLogMultipleLine", "多行Log方法示範完成")
+                        }
+                }.onFailure { e -> loge("讀取錯誤！原因：${e.message}", e) }.getOrNull()
+                // 返回一個空的 SampleData 物件
+            }
         }
-        loge("sampleForLogMultipleLine", "多行Log方法示範完成")
     }
 
 
