@@ -4,8 +4,8 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+//import com.google.gson.Gson
+//import com.google.gson.GsonBuilder
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.*
@@ -118,19 +118,19 @@ fun calculateTimeInterval(tagName: String = logDefaultTag ?: "CalculateTime LOG"
     loge(tagName, "花費時間共計${System.currentTimeMillis() - startTime}毫秒。")
 }
 
-
-/**
- * Gson 的格式互轉
- * */
-fun <T> String?.toDataBean(classOfT: Class<T>?): T? {
-
-    return if (this.isJson()) Gson().fromJson(this, classOfT)
-    else null
-}
-
-fun <T : Any> T.toJson(): String {
-    return GsonBuilder().disableHtmlEscaping().create().toJson(this) ?: ""
-}
+//
+///**
+// * Gson 的格式互轉
+// * */
+//fun <T> String?.toDataBean(classOfT: Class<T>?): T? {
+//
+//    return if (this.isJson()) Gson().fromJson(this, classOfT)
+//    else null
+//}
+//
+//fun <T : Any> T.toJson(): String {
+//    return GsonBuilder().disableHtmlEscaping().create().toJson(this) ?: ""
+//}
 
 fun String?.isJson(): Boolean {
     if (isNullOrEmpty()) {
