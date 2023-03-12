@@ -34,8 +34,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sampleForGsonTools(data: String) {
-//        loge("轉換為DataBean的內容是=>${data.toDataBean(SampleData::class.java)}")
-//        loge("此內容轉為Json是=>${data.toDataBean(SampleData::class.java)?.toJson()}")
+        loge("轉換為DataBean的內容是=>${data.toDataBean(SampleData::class.java)}")
+        loge("此內容轉為Json是=>${data.toDataBean(SampleData::class.java)?.toJson()}")
 
         loge("sampleForGsonTools", "Gson方法範例執行完成")
     }
