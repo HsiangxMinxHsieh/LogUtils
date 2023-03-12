@@ -105,7 +105,7 @@ fun Throwable.trace(TAG: String = logDefaultTag ?: "TRACE LOG") {
 fun calculateTimeStep(stepTime: Long, tagName: String = logDefaultTag ?: "CalculateTime LOG"): Long {
     return System.currentTimeMillis().apply {
         if (this - stepTime != 0L)
-            loge(tagName, "於[${tagName}]，與上一階段相差時間是${this - stepTime}毫秒")
+            loge(logDefaultTag?:"calculateTimeStep LOG", "於[${tagName}]，與上一階段相差時間是${this - stepTime}毫秒")
     }
 }
 

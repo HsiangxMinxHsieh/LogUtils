@@ -26,10 +26,10 @@ class MainActivity : AppCompatActivity() {
         sampleForLogWriteToFile()
 
         // 讀取檔案寫入多行Log範例：
-        val data = sampleForLogMultipleLine() ?: return
+        sampleForLogMultipleLine()
 
         // Gson的toJson和資料類別互轉
-        sampleForGsonTools(data)
+        sampleForGsonTools(getDataFromAssets("test_to_print_short.json") ?: return)
 
     }
 
@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         loge("轉換為DataBean的內容是=>${data.toDataBean(SampleData::class.java)}")
         loge("此內容轉為Json是=>${data.toDataBean(SampleData::class.java)?.toJson()}")
 
+        loge("sampleForGsonTools", "Gson方法範例執行完成")
     }
 
     private fun sampleForLogWriteToFile() = CoroutineScope(Dispatchers.Default).launch {
@@ -102,7 +103,16 @@ class MainActivity : AppCompatActivity() {
                             loge("sampleForLogMultipleLine", "多行Log方法示範完成")
                         }
                 }.onFailure { e -> loge("讀取錯誤！原因：${e.message}", e) }.getOrNull()
-                // 返回一個空的 SampleData 物件
+            }
+        }
+    }
+
+    fun getDataFromAssets(fileName: String): String? = runBlocking {
+        return@runBlocking withContext(Dispatchers.Default) {
+            withContext(Dispatchers.Default) {
+                kotlin.runCatching {
+                    assets.open(fileName).bufferedReader().use { it.readText() }
+                }.onFailure { e -> loge("讀取錯誤！原因：${e.message}", e) }.getOrNull()
             }
         }
     }
