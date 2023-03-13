@@ -56,7 +56,7 @@ afterEvaluate {
                 from components.release
 //                groupId = 'com.github.HsiangxMinxHsieh'
 //                artifactId = 'LogUtils'
-//                version = '1.3.2'
+                version = '1.3.2'
                 // 上傳 source code，這樣使用方可以看到註解
                 artifact generateSourcesJar
             }

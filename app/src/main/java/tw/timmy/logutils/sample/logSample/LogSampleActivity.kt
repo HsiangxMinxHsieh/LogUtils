@@ -1,13 +1,14 @@
-package tw.timmy.logutils.sample
+package tw.timmy.logutils.sample.logSample
 
 import android.os.Bundle
 import android.os.Environment
 import androidx.appcompat.app.AppCompatActivity
 import com.timmy.logutils.*
 import kotlinx.coroutines.*
+import tw.timmy.logutils.sample.R
 import java.io.File
 
-class MainActivity : AppCompatActivity() {
+class LogSampleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

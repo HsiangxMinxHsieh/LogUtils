@@ -1,4 +1,4 @@
-package tw.timmy.logutils.sample
+package tw.timmy.logutils.sample.logSample
 
 import com.google.gson.annotations.SerializedName
 
