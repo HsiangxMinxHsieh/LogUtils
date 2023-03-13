@@ -84,9 +84,9 @@ class MainActivity : AppCompatActivity() {
     // 計時方法內容型使用範例：
     private fun sampleForCalculateTimeInterval() = CoroutineScope(Dispatchers.Default).launch {
         calculateTimeInterval("某件事的計時") {
-            loge("我做了一件事")
+            loge("我做了某件事")
             delay(1000L)
-            loge("這件事已經完成了")
+            loge("某件事已經完成了")
         }
 
         loge("sampleForCalculateTimeInterval", "內容型計時方法示範完成")
@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun getDataFromAssets(fileName: String): String? = runBlocking {
+    private fun getDataFromAssets(fileName: String): String? = runBlocking {
         return@runBlocking withContext(Dispatchers.Default) {
             withContext(Dispatchers.Default) {
                 kotlin.runCatching {
