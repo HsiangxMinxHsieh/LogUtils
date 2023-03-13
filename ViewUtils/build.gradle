@@ -1,10 +1,13 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
 }
+//group='com.github.HsiangxMinxHsieh'
+////// group='com.github.你的github用户名'
 
 android {
-    namespace 'tw.timmy.logutils.viewutils'
+    namespace 'tw.timmy.viewutils'
     compileSdk 33
 
     defaultConfig {
@@ -22,20 +25,40 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
 }
 
 dependencies {
 
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    // View
+    implementation 'androidx.core:core-ktx:1.6.0'
+
+    // Coroutine
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+
+}
+
+
+task generateSourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier 'sources'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            Production(MavenPublication) {
+                from components.release
+                groupId = 'com.github.HsiangxMinxHsieh'
+                artifactId = 'ViewUtils'
+                // 上傳 source code，這樣使用方可以看到註解
+                artifact generateSourcesJar
+            }
+        }
+    }
 }
