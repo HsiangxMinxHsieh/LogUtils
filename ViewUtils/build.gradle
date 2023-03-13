@@ -56,7 +56,7 @@ afterEvaluate {
                 from components.release
 //                groupId = 'com.github.HsiangxMinxHsieh'
 //                artifactId = 'ViewUtils'
-                version = '2.0.4'
+                version = '1.0.4'
                 // 上傳 source code，這樣使用方可以看到註解
                 artifact generateSourcesJar
             }
